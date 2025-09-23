@@ -1,0 +1,31 @@
+// plugins/builtin.plugins.ts (пример названия вашего файла-реестра)
+import { PluginMeta } from '@barfinex/types';
+import { TradeJournalModule } from '@barfinex/plugins/trade-journal';
+import { OrderflowTradeAnalyticsModule } from '@barfinex/plugins/orderflow-trade-analytics';
+
+export const builtinPluginMetas: PluginMeta[] = [
+    {
+        studioGuid: 'trade-journal-dev',
+        title: 'Trade Journal',
+        description: 'Журнал сделок для ручного и автоматического логирования',
+        version: '0.1.0',
+        author: 'Barfinex',
+        visibility: 'public',
+        pluginApi: '/plugins-api/trade-journal-dev',
+    },
+    {
+        studioGuid: 'orderflow-trade-analytics-dev',
+        title: 'Orderflow & Trade Analytics',
+        description:
+            'Аналитика по трейдам и ордербуку: delta ratio, CVD, VWAP крупных сделок, дисбаланс стакана',
+        version: '0.1.0',
+        author: 'Barfinex',
+        visibility: 'public',
+        pluginApi: '/plugins-api/orderflow-trade-analytics-dev',
+    },
+];
+
+export const builtinPluginModules = [
+    TradeJournalModule,
+    OrderflowTradeAnalyticsModule,
+];

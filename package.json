@@ -1,0 +1,27 @@
+{
+    "name": "@barfinex/detector",
+    "version": "0.1.0",
+    "description": "Core detection service for algorithmic strategies in the Barfinex ecosystem. Runs pluggable strategy modules, backtests on historical data, and generates alerts.",
+    "author": "Barfinex",
+    "license": "Apache-2.0",
+    "main": "dist/main.js",
+    "scripts": {
+        "build": "tsc -p tsconfig.app.json",
+        "start": "node dist/main.js",
+        "start:dev": "nest start --watch",
+        "lint": "eslint 'src/**/*.ts' --fix",
+        "test": "jest"
+    },
+    "dependencies": {
+        "@nestjs/common": "^10.3.4",
+        "@nestjs/core": "^10.3.4",
+        "@nestjs/microservices": "^10.3.4",
+        "reflect-metadata": "^0.2.1",
+        "rxjs": "^7.8.1"
+    },
+    "devDependencies": {
+        "@nestjs/cli": "^10.3.2",
+        "typescript": "^5.1.3",
+        "ts-node": "^10.9.1"
+    }
+}

@@ -1,0 +1,46 @@
+apps/*
+!apps/detector
+
+# Excluding confidential files
+.env
+.env.*
+*.pem
+*.key
+*.crt
+secrets/
+.yaml
+.yml
+.bat
+.conf
+init-mongo.js
+mongo-init.js
+
+# Excluding version control files
+.git
+.gitignore
+.gitattributes
+
+# Excluding local settings and IDE files
+.idea/
+.vscode/
+*.iml
+
+# Excluding temporary files and artifacts
+*.log
+*.tmp
+*.pid
+*.swp
+*.swo
+*.bak
+
+# Excluding build and cache folders
+node_modules/
+dist/
+build/
+target/
+out/
+
+# Excluding operating system files
+.DS_Store
+Thumbs.db
+*.~lock.*
