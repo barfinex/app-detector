@@ -10,8 +10,8 @@ import {
     PluginMeta,
 } from '@barfinex/types';
 
-import { TradeJournalService } from '@barfinex/plugins/trade-journal';
-import { OrderflowTradeAnalyticsService } from '@barfinex/plugins/orderflow-trade-analytics';
+import { TradeJournalService } from '@barfinex/plugins/trade-journal/src';
+import { OrderflowTradeAnalyticsService } from '@barfinex/plugins/orderflow-trade-analytics/src';
 import { z } from 'zod';
 
 /**

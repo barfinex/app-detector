@@ -11,7 +11,7 @@ import {
     PluginMeta
 } from '@barfinex/types';
 
-import { TradeJournalModule } from '@barfinex/plugins/trade-journal';
+import { TradeJournalModule } from '@barfinex/plugins/trade-journal/src';
 
 export const pluginMetas: PluginMeta[] = [
     {

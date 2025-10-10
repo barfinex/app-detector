@@ -29,8 +29,8 @@ import {
     VolumeFollowConfigService,
 } from './volume-follow.config';
 
-import { OrderflowTradeAnalyticsService } from '@barfinex/plugins/orderflow-trade-analytics';
-import { ORDERFLOW_ANALYTICS } from '@barfinex/plugins/orderflow-trade-analytics/orderflow-trade-analytics.constants';
+import { OrderflowTradeAnalyticsService } from '@barfinex/plugins/orderflow-trade-analytics/src';
+import { ORDERFLOW_ANALYTICS } from '@barfinex/plugins/orderflow-trade-analytics/src/orderflow-trade-analytics.constants';
 
 /**
  * Detector Service: VolumeFollow

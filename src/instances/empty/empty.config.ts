@@ -1,7 +1,7 @@
 import { Injectable, Provider } from '@nestjs/common';
 import { Detector, PluginMeta, SubscriptionType, Symbol, TimeFrame } from '@barfinex/types';
 
-import { TradeJournalModule } from '@barfinex/plugins/trade-journal';
+import { TradeJournalModule } from '@barfinex/plugins/trade-journal/src';
 
 export const pluginMetas: PluginMeta[] = [
     {
