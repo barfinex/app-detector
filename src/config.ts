@@ -18,7 +18,7 @@ export function resolveDetectorConfig(): DetectorModuleConfig {
     let jsonConfig: Partial<DetectorConfig> = {};
 
     try {
-        const configPath = path.join(process.cwd(), 'config.detector.json');
+        const configPath = path.join(process.cwd(), 'config', 'config.detector.json');
         if (fs.existsSync(configPath)) {
             jsonConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8')).general ?? {};
         }
