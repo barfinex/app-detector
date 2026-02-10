@@ -1,6 +1,6 @@
 # Detector Service
 
-The `detector` service is a core component of the `barfin-network` ecosystem. It is designed to support algorithmic strategies for financial signal detection, backtesting, and alert generation. Built using **NestJS**, it emphasizes modularity, testability, and ease of integration with other services.
+The `detector` service is a core component of the `barfinex` ecosystem. It is designed to support algorithmic strategies for financial signal detection, backtesting, and alert generation. Built using **NestJS**, it emphasizes modularity, testability, and ease of integration with other services.
 
 ---
 
@@ -131,6 +131,6 @@ This project is licensed under the [Apache License 2.0](LICENSE) with additional
 
    * Mention "Barfin Network Limited".
    * Show the official logo.
-   * Link to [https://barfin.network/](https://barfin.network/)
+   * Link to [https://barfinex.com/](https://barfinex.com/)
 
-Contact us via [https://barfin.network/](https://barfin.network/) for permissions or questions.
+Contact us via [https://barfinex.com/](https://barfinex.com/) for permissions or questions.
