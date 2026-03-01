@@ -183,6 +183,7 @@ export class EmptyService extends DetectorService {
         // BUY: пересечение снизу вверх
         if (prevFast < prevSlow && fastSma > slowSma && !this.isOpenOrder(symbol)) {
             const order: Order = {
+                closeTime: null,
                 symbol,
                 side: OrderSide.BUY,
                 type: OrderType.MARKET,
