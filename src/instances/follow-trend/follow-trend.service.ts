@@ -22,6 +22,7 @@ import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class FollowTrendService extends DetectorService {
+    private legacyWarned = false;
 
     constructor(
         @Inject(forwardRef(() => PluginDriverService))
@@ -91,6 +92,7 @@ export class FollowTrendService extends DetectorService {
 
 
     async onTrade(trade: Trade) {
+        if (this.isLegacyReadOnly()) return;
 
         console.log("trade:", trade);
 
@@ -221,6 +223,17 @@ export class FollowTrendService extends DetectorService {
     }
 
     async onOrderBookUpdate(orderbook: OrderBook) { }
+
+    private isLegacyReadOnly(): boolean {
+        const readonly = Boolean((this.options.customConfig as any)?.legacyReadOnly);
+        if (readonly && !this.legacyWarned) {
+            this.logger.warn(
+                '[legacy] FollowTrendService is running in read-only mode; signals/execution disabled',
+            );
+            this.legacyWarned = true;
+        }
+        return readonly;
+    }
 
 }
 

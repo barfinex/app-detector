@@ -19,6 +19,10 @@ export const pluginModules = [
   TradeJournalModule,
 ];
 
+export interface FollowTrendCustomConfig {
+  legacyReadOnly: boolean;
+}
+
 
 @Injectable()
 export class FollowTrendConfigService {
@@ -41,7 +45,7 @@ export class FollowTrendConfigService {
         {
           restApiUrl: 'http://localhost:8081/api',
           key: '7a366b3b3bdb9fa6cf0a8aa0ac611e6550706831c54294c0dbb4027b250c0608',
-          restApiToken: 'xxx',
+          apiToken: 'xxx',
           accounts: []
         },
       ],
@@ -92,7 +96,7 @@ export class FollowTrendConfigService {
           active: false,
         },
         {
-          type: SubscriptionType.INSPECTOR_EVENT,
+          type: SubscriptionType.INSPECTOR_RISK_LIMIT_BREACH,
           active: false,
         },
         {
@@ -117,6 +121,16 @@ export class FollowTrendConfigService {
       },
 
       advisor: undefined,
+      qualityGate: {
+        enabled: false,
+      },
+      performance: {
+        enabled: true,
+        writeToQuestDb: true,
+      },
+      customConfig: {
+        legacyReadOnly: true,
+      } as FollowTrendCustomConfig,
 
       plugins: {
         modules: pluginModules,

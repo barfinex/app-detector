@@ -93,7 +93,7 @@ export class VolumeFollowConfigService {
 
         const provider: MarketProvider = {
             key: 'volume-follow-key',
-            restApiToken: 'dev-token',
+            apiToken: 'dev-token',
             restApiUrl: 'http://localhost:8081/api',
             connectors: [
                 {

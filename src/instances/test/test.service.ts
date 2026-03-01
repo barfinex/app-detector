@@ -31,6 +31,7 @@ import { ModuleRef } from '@nestjs/core';
 @Injectable()
 export class TestService extends DetectorService {
     protected readonly logger = new Logger(TestService.name);
+    private legacyWarned = false;
 
     private sandbox: {
         fastSmaResult: number[];
@@ -137,6 +138,7 @@ export class TestService extends DetectorService {
     // ===================== Event Hooks =====================
 
     async onTrade(trade: Trade) {
+        if (this.isLegacyReadOnly()) return;
         this.logger.debug(
             `[onTrade] ${trade.symbol.name} price=${trade.price} volume=${trade.volume}`,
         );
@@ -169,6 +171,7 @@ export class TestService extends DetectorService {
     }
 
     async onOrderBookUpdate(orderbook: OrderBook) {
+        if (this.isLegacyReadOnly()) return;
         this.logger.debug(`[onOrderBookUpdate] ${orderbook.symbol.name}`);
     }
 
@@ -189,5 +192,16 @@ export class TestService extends DetectorService {
                 side ? indicator[method](candle, side) : indicator[method](candle);
             }
         });
+    }
+
+    private isLegacyReadOnly(): boolean {
+        const readonly = Boolean((this.options.customConfig as any)?.legacyReadOnly);
+        if (readonly && !this.legacyWarned) {
+            this.logger.warn(
+                '[legacy] TestService is running in read-only mode; signals/execution disabled',
+            );
+            this.legacyWarned = true;
+        }
+        return readonly;
     }
 }

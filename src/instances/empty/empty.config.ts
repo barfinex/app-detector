@@ -36,7 +36,7 @@ export class EmptyConfigService {
                 {
                     restApiUrl: 'http://localhost:8081/api',
                     key: '7a366b3b3bdb9fa6cf0a8aa0ac611e6550706831c54294c0dbb4027b250c0608',
-                    restApiToken: 'xxx',
+                    apiToken: 'xxx',
                     accounts: []
                 }
             ],
@@ -109,7 +109,7 @@ export class EmptyConfigService {
                     active: false,
                 },
                 {
-                    type: SubscriptionType.INSPECTOR_EVENT,
+                    type: SubscriptionType.INSPECTOR_RISK_LIMIT_BREACH,
                     active: false,
                 },
                 {

@@ -1,4 +1,4 @@
-import { Injectable, Provider as NestProvider } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
     Detector,
     DetectorConfigInput,
@@ -8,14 +8,11 @@ import {
     ConnectorType,
     MarketType,
     buildDetectorConfig,
-    PluginMeta
+    PluginMeta,
+    SubscriptionType,
 } from '@barfinex/types';
 
 import { TradeJournalModule } from '@barfinex/plugins/trade-journal/src';
-
-export interface TestDetectorCustomConfig {
-    legacyReadOnly: boolean;
-}
 
 export const pluginMetas: PluginMeta[] = [
     {
@@ -29,12 +26,17 @@ export const pluginMetas: PluginMeta[] = [
     },
 ];
 
-export const pluginModules = [
-    TradeJournalModule,
-];
+export const pluginModules = [TradeJournalModule];
+
+export interface SmaCrossoverTelegramCustomConfig {
+    /** Период короткой SMA */
+    shortSmaPeriod: number;
+    /** Период длинной SMA */
+    longSmaPeriod: number;
+}
 
 @Injectable()
-export class TestConfigService {
+export class SmaCrossoverTelegramConfigService {
     private symbols: TradingSymbol[] = [
         { name: 'BTCUSDT', leverage: 10, quantity: 0.001 },
         { name: 'ETHUSDT', leverage: 10, quantity: 0.001 },
@@ -43,12 +45,12 @@ export class TestConfigService {
     private quoteCurrency = 'USDT';
 
     get detector(): DetectorConfigInput {
-        const intervals: TimeFrame[] = [TimeFrame.min1, TimeFrame.min5];
+        const intervals: TimeFrame[] = [TimeFrame.min5, TimeFrame.min15];
 
         const provider: Provider = {
-            key: 'test-key',
-            apiToken: 'test-token',
-            restApiUrl: 'http://localhost:8081/api',
+            key: 'sma-crossover-telegram-key',
+            apiToken: process.env.PROVIDER_API_TOKEN ?? 'test-token',
+            restApiUrl: process.env.PROVIDER_API_URL ?? 'http://localhost:8081/api',
             connectors: [
                 {
                     isActive: true,
@@ -61,48 +63,42 @@ export class TestConfigService {
             ],
             accounts: [],
             isAvailable: true,
-            studioGuid: 'test-guid',
-            studioName: 'Mock Provider',
-            studioDescription: 'Test mock provider for local dev',
-            studioSocketApiUrl: 'ws://localhost:8081/ws',
+            studioGuid: 'sma-crossover-telegram',
+            studioName: 'SMA Crossover Telegram',
+            studioDescription: 'Тест: пересечение SMA → уведомление в Telegram без сделок',
+            studioSocketApiUrl: process.env.PROVIDER_WS_URL ?? 'ws://localhost:8081/ws',
         };
 
         return {
-            sysname: 'Test',
-            logLevel: 'info2',
+            sysname: 'SmaCrossoverTelegram',
+            logLevel: 'info',
             currency: this.quoteCurrency,
             restApiUrl: provider.restApiUrl,
             providers: [provider],
             symbols: this.symbols,
             intervals,
-            subscriptions: [],
+            subscriptions: [
+                { type: SubscriptionType.PROVIDER_ACCOUNT_EVENT, active: true },
+                {
+                    type: SubscriptionType.PROVIDER_MARKETDATA_CANDLE,
+                    symbols: this.symbols,
+                    active: true,
+                },
+            ],
             indicators: [],
             orders: [],
             useSandbox: false,
             useScratch: false,
-            qualityGate: {
-                enabled: false,
-            },
-            performance: {
-                enabled: true,
-                writeToQuestDb: true,
-            },
+            qualityGate: { enabled: false },
+            performance: { enabled: true, writeToQuestDb: false },
             customConfig: {
-                legacyReadOnly: true,
-            } as TestDetectorCustomConfig,
+                shortSmaPeriod: 10,
+                longSmaPeriod: 30,
+            } as SmaCrossoverTelegramCustomConfig,
             plugins: {
                 modules: pluginModules,
-                metas: pluginMetas
-            }
+                metas: pluginMetas,
+            },
         };
     }
 }
-
-// export const TestOptionsProvider: NestProvider = {
-//     provide: 'INITIAL_OPTIONS',
-//     useFactory: (configService: TestConfigService): Detector => {
-//         const cfg = configService.detector;
-//         return buildDetectorConfig(cfg);
-//     },
-//     inject: [TestConfigService],
-// };

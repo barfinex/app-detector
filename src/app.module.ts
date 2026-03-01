@@ -9,6 +9,12 @@ import { ConnectorModule } from '@barfinex/connectors';
 
 import { resolveDetectorConfig } from './config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { RiskController } from './risk/risk.controller';
+import { OrderModule } from '@barfinex/orders';
+import { AppRegistrationService } from './app-registration.service';
+import { DetectorRegistrationBridgeService } from './detector-registration-bridge.service';
+import { AlertModule } from './alert/alert.module';
+import { DetectorTelegramNotifierService } from './alert/detector-telegram-notifier.service';
 
 // import { builtinPluginModules, builtinPluginMetas } from './plugins.config';
 
@@ -28,6 +34,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 
         // 🔹 модули Barfinex
         ConnectorModule,
+        OrderModule,
+        AlertModule,
         // DetectorCoreModule,
         DetectorModule.register(resolveDetectorConfig()),
 
@@ -37,7 +45,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
                 name: 'PROVIDER_SERVICE',
                 transport: Transport.REDIS,
                 options: {
-                    host: process.env.REDIS_HOST,
+                    host: process.env.REDIS_HOST || 'localhost',
                     port: +(process.env.REDIS_PORT || 6379),
                     retryAttempts: 10,
                     retryDelay: 5000,
@@ -45,7 +53,12 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
             },
         ]),
     ],
-    controllers: [AppController],
-    providers: [AppService],
+    controllers: [AppController, RiskController],
+    providers: [
+        AppService,
+        AppRegistrationService,
+        DetectorRegistrationBridgeService,
+        DetectorTelegramNotifierService,
+    ],
 })
 export class AppModule { }
