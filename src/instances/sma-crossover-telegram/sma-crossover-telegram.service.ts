@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { DetectorService } from '@barfinex/detector';
 import {
     Candle,
@@ -49,9 +49,11 @@ export class SmaCrossoverTelegramService extends DetectorService {
         protected readonly configService: ConfigService,
         @Inject('PROVIDER_SERVICE') client: ClientProxy,
         protected readonly localConfig: SmaCrossoverTelegramConfigService,
-        mergedInitial?: Partial<Detector>,
+        @Optional() _indicatorsService?: unknown,
+        @Optional() _mergedInitial?: Partial<Detector>,
+        @Optional() _globalCapitalAllocator?: unknown,
     ) {
-        const local = (localConfig?.detector ?? {}) as DetectorConfigInput;
+        const local = (_mergedInitial ?? localConfig?.detector ?? {}) as DetectorConfigInput;
         if (!local.providers || local.providers.length === 0) {
             throw new Error(
                 '[SmaCrossoverTelegramService] No providers in config.',
@@ -64,8 +66,10 @@ export class SmaCrossoverTelegramService extends DetectorService {
             orderService,
             configService,
             client,
-            localConfig,
-            mergedInitial,
+            _mergedInitial
+                ? { detector: _mergedInitial as DetectorConfigInput }
+                : localConfig,
+            _mergedInitial,
         );
     }
 

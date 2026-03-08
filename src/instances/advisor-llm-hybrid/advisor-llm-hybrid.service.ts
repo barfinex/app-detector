@@ -11,18 +11,23 @@ import {
   AdvisorLlmDecisionRequest,
   AdvisorLlmDecisionResponse,
   AdvisorMarketRegime,
+  BaseEvent,
   ConnectorType,
   Detector,
   DetectorConfigInput,
+  EventMetadata,
+  EventSource,
   MarketType,
   OrderBook,
   Position,
+  Symbol,
   Trade,
   TradeSide,
   AdvisorLlmDecision,
   AdvisorDecision,
   SubscriptionType,
   DetectorEventType,
+  assertEventSourceMatch,
 } from '@barfinex/types';
 import { ConnectorService } from '@barfinex/connectors';
 import { OrderService } from '@barfinex/orders';
@@ -30,6 +35,7 @@ import { PluginDriverService } from '@barfinex/plugin-driver';
 import { KeyService } from '@barfinex/key';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
+import { safeClientProxyEmit } from '@barfinex/utils';
 import {
   AdvisorLlmHybridConfigService,
   AdvisorLlmHybridCustomConfig,
@@ -104,6 +110,7 @@ export class AdvisorLlmHybridService extends DetectorService {
       direction: decision.direction,
       confidence: decision.confidence,
       rationale: decision.rationale,
+      reasoningCode: decision.reasoningCode,
       spreadPct: this.latestSpreadPercent,
       ts: Date.now(),
     });
@@ -129,14 +136,46 @@ export class AdvisorLlmHybridService extends DetectorService {
     connectorType: ConnectorType,
     marketType: MarketType,
   ): Promise<void> {
-    if (this.latestSpreadPercent > this.cfg.maxSpreadPercent) {
+    const position = this.positions.findBySymbol(trade.symbol);
+    const now = Date.now();
+    if (decision.intent === 'STAND_DOWN') {
+      const requestedCooldown = Number(decision.cooldownMs ?? this.cfg.standDownDefaultCooldownMs ?? 0);
+      const safeCooldownMs = Number.isFinite(requestedCooldown) ? Math.max(0, requestedCooldown) : 0;
+      if (safeCooldownMs > 0) {
+        this.cooldownUntil = Math.max(this.cooldownUntil, now + safeCooldownMs);
+      }
+      this.registerEvent(DetectorEventType.DECISION_CONTEXT_UPDATED, {
+        symbols: [{ name: trade.symbol.name }],
+        decision: decision.decision,
+        intent: 'STAND_DOWN',
+        cooldownMs: safeCooldownMs,
+        cooldownUntil: this.cooldownUntil,
+        ts: now,
+      });
+      // STAND_DOWN blocks only new entries. Exit flow remains available below.
+      if (!position) {
+        this.logger.warn(
+          `[applyDecision] stand-down active for ${trade.symbol.name}, cooldownMs=${safeCooldownMs}`,
+        );
+        return;
+      }
+    }
+    if (decision.validUntil && now > decision.validUntil) {
+      this.logger.debug('[applyDecision] skip expired decision');
+      return;
+    }
+    const constraintBlock = this.checkDecisionConstraints(decision, Boolean(position));
+    if (constraintBlock) {
+      this.logger.debug(`[applyDecision] constraint blocked: ${constraintBlock}`);
+      return;
+    }
+
+    if (!position && this.latestSpreadPercent > this.cfg.maxSpreadPercent) {
       this.logger.debug(
         `[applyDecision] spread too high=${this.latestSpreadPercent.toFixed(3)}%`,
       );
       return;
     }
-
-    const position = this.positions.findBySymbol(trade.symbol);
 
     if (!position) {
       if (
@@ -164,24 +203,31 @@ export class AdvisorLlmHybridService extends DetectorService {
       const baseQuantity =
         this.options.symbols.find(s => s.name === this.cfg.symbol)?.quantity ?? 0.001;
       const quantity = Math.max(0.0001, Number((baseQuantity * risk.sizeMultiplier).toFixed(6)));
-      await this.openPosition({
-        symbol: trade.symbol,
-        side: decision.direction === 'LONG' ? TradeSide.LONG : TradeSide.SHORT,
-        quantity,
-        price: decision.entryPrice ?? trade.price,
+      this.emitDetectorPositionIntent(
+        SubscriptionType.DETECTOR_POSITION_OPEN_REQUEST,
+        {
+          symbol: {
+            ...trade.symbol,
+            quantity,
+            leverage: Number((this.cfg as any).defaultLeverage ?? 1),
+          },
+          side: decision.direction === 'LONG' ? 'LONG' : 'SHORT',
+          confidence: Number(decision.confidence ?? 0),
+          strategyId: this.options.key || this.options.sysname || 'advisor-llm-hybrid',
+        },
         connectorType,
         marketType,
-      });
+      );
       this.entryMomentBySymbol.set(trade.symbol.name, Date.now());
       this.logger.log(
-        `[applyDecision] open ${decision.direction} ${trade.symbol.name} conf=${decision.confidence.toFixed(2)} rationale=${decision.rationale}`,
+        `[applyDecision] intent_open ${decision.direction} ${trade.symbol.name} conf=${decision.confidence.toFixed(2)} rationale=${decision.rationale}`,
       );
       return;
     }
 
     const shouldExitByDecision =
       decision.decision === AdvisorDecision.NO_TRADE ||
-      (decision.confidence ?? 0) < this.cfg.minConfidenceToHold ||
+      (decision.confidence ?? 0) < this.minHoldConfidence(decision) ||
       (decision.direction &&
         ((decision.direction === 'LONG' && position.side === TradeSide.SHORT) ||
           (decision.direction === 'SHORT' && position.side === TradeSide.LONG)));
@@ -192,15 +238,25 @@ export class AdvisorLlmHybridService extends DetectorService {
       (position.side === TradeSide.LONG ? 1 : -1) *
       ((trade.price - position.entryPrice) / position.entryPrice) *
       100;
-    await this.closePosition({
-      position,
+    this.emitDetectorPositionIntent(
+      SubscriptionType.DETECTOR_POSITION_CLOSE_REQUEST,
+      {
+        symbol: {
+          ...position.symbol,
+          quantity: Math.abs(Number(position.quantity ?? 0)),
+          leverage: Number((this.cfg as any).defaultLeverage ?? 1),
+        },
+        side: position.side === TradeSide.LONG ? 'LONG' : 'SHORT',
+        confidence: Number(decision.confidence ?? 0),
+        strategyId: this.options.key || this.options.sysname || 'advisor-llm-hybrid',
+      },
       connectorType,
       marketType,
-    });
+    );
     this.onPositionClosed(pnlPct, 'advisor');
     this.entryMomentBySymbol.delete(trade.symbol.name);
     this.logger.log(
-      `[applyDecision] close by advisor decision=${decision.decision} conf=${decision.confidence.toFixed(2)}`,
+      `[applyDecision] intent_close by advisor decision=${decision.decision} conf=${decision.confidence.toFixed(2)}`,
     );
   }
 
@@ -230,16 +286,76 @@ export class AdvisorLlmHybridService extends DetectorService {
 
     if (!tpHit && !slHit && !expired && !trailingHit) return;
 
-    await this.closePosition({
-      position: refreshed,
+    this.emitDetectorPositionIntent(
+      SubscriptionType.DETECTOR_POSITION_CLOSE_REQUEST,
+      {
+        symbol: {
+          ...refreshed.symbol,
+          quantity: Math.abs(Number(refreshed.quantity ?? 0)),
+          leverage: Number((this.cfg as any).defaultLeverage ?? 1),
+        },
+        side: refreshed.side === TradeSide.LONG ? 'LONG' : 'SHORT',
+        confidence: Number(this.lastDecision?.confidence ?? 0),
+        strategyId: this.options.key || this.options.sysname || 'advisor-llm-hybrid',
+      },
       connectorType,
       marketType,
-    });
+    );
     this.onPositionClosed(pnlPct, tpHit ? 'tp' : slHit ? 'sl' : expired ? 'time' : 'trail');
     this.entryMomentBySymbol.delete(position.symbol.name);
     this.logger.log(
-      `[manageOpenPosition] close reason=${tpHit ? 'tp' : slHit ? 'sl' : expired ? 'time' : 'trail'} pnl=${pnlPct.toFixed(2)}%`,
+      `[manageOpenPosition] intent_close reason=${tpHit ? 'tp' : slHit ? 'sl' : expired ? 'time' : 'trail'} pnl=${pnlPct.toFixed(2)}%`,
     );
+  }
+
+  private emitDetectorPositionIntent(
+    type:
+      | SubscriptionType.DETECTOR_POSITION_OPEN_REQUEST
+      | SubscriptionType.DETECTOR_POSITION_CLOSE_REQUEST
+      | SubscriptionType.DETECTOR_POSITION_REDUCE_REQUEST
+      | SubscriptionType.DETECTOR_POSITION_FLIP_REQUEST,
+    payload: {
+      symbol: Symbol;
+      side: 'LONG' | 'SHORT';
+      confidence: number;
+      strategyId: string;
+    },
+    connectorType: ConnectorType,
+    marketType: MarketType,
+  ): void {
+    assertEventSourceMatch(type, EventSource.DETECTOR);
+    const now = Date.now();
+    const event: BaseEvent<typeof type, typeof payload> = {
+      eventId: `detector:${this.options.sysname || 'advisor-llm-hybrid'}:${type}:${now}`,
+      type,
+      source: EventSource.DETECTOR,
+      timestamp: now,
+      correlationId: `${this.options.key || this.options.sysname || 'advisor-llm-hybrid'}:${payload.symbol.name}:${type}`,
+      payload,
+    };
+    const metadata: EventMetadata = {
+      eventId: event.eventId,
+      traceId: event.correlationId || event.eventId,
+      timestamp: now,
+      version: 1,
+      source: EventSource.DETECTOR,
+    };
+    safeClientProxyEmit({
+      client: this.client,
+      pattern: type,
+      payload: {
+        value: event,
+        metadata,
+        options: {
+          connectorType,
+          marketType,
+          key: this.options.key || this.options.sysname || 'advisor-llm-hybrid',
+          updateMoment: now,
+        },
+      },
+      logger: this.logger,
+      errorContext: '[detector.advisorLlmHybrid.emitDetectorPositionIntent]',
+    });
   }
 
   private async fetchAdvisorDecision(symbol: string): Promise<AdvisorLlmDecision> {
@@ -340,6 +456,32 @@ export class AdvisorLlmHybridService extends DetectorService {
       windowSec: 120,
       generatedAt: Date.now(),
     };
+  }
+
+  private minHoldConfidence(decision: AdvisorLlmDecision): number {
+    const base = Number(this.cfg.minConfidenceToHold ?? 0);
+    if (decision.horizonClass === 'scalp') return Math.min(1, base + 0.05);
+    if (decision.horizonClass === 'swing') return Math.max(0, base - 0.05);
+    return base;
+  }
+
+  private checkDecisionConstraints(decision: AdvisorLlmDecision, hasPosition: boolean): string | null {
+    for (const raw of decision.constraints ?? []) {
+      const rule = String(raw).trim().toLowerCase();
+      if (!rule) continue;
+      if (rule === 'no_new_entry' && !hasPosition) {
+        return 'no_new_entry';
+      }
+      if (rule.startsWith('max_spread_pct:')) {
+        const limit = Number(rule.split(':')[1]);
+        if (Number.isFinite(limit) && this.latestSpreadPercent > limit) return 'max_spread_pct';
+      }
+      if (rule.startsWith('min_depth:')) {
+        const minDepth = Number(rule.split(':')[1]);
+        if (Number.isFinite(minDepth) && this.latestBookDepth < minDepth) return 'min_depth';
+      }
+    }
+    return null;
   }
 
   private getPrimaryConnectorContext(): {

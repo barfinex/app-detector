@@ -13,9 +13,9 @@ import {
 
 import { TradeJournalModule } from '@barfinex/plugins/trade-journal/src';
 
-export interface TestDetectorCustomConfig {
-    legacyReadOnly: boolean;
-}
+// export interface TestDetectorCustomConfig {
+//     legacyReadOnly: boolean;
+// }
 
 export const pluginMetas: PluginMeta[] = [
     {
@@ -87,9 +87,9 @@ export class TestConfigService {
                 enabled: true,
                 writeToQuestDb: true,
             },
-            customConfig: {
-                legacyReadOnly: true,
-            } as TestDetectorCustomConfig,
+            // customConfig: {
+            //     legacyReadOnly: false,
+            // } as TestDetectorCustomConfig,
             plugins: {
                 modules: pluginModules,
                 metas: pluginMetas

@@ -12,6 +12,7 @@ import {
 export interface AdvisorLlmHybridCustomConfig {
   symbol: string;
   decisionCooldownMs: number;
+  standDownDefaultCooldownMs?: number;
   minConfidenceToEnter: number;
   minConfidenceToHold: number;
   maxSpreadPercent: number;
@@ -49,6 +50,7 @@ export class AdvisorLlmHybridConfigService {
     const customConfig: AdvisorLlmHybridCustomConfig = {
       symbol: 'BTCUSDT',
       decisionCooldownMs: 30_000,
+      standDownDefaultCooldownMs: 5 * 60 * 1000,
       minConfidenceToEnter: 0.62,
       minConfidenceToHold: 0.48,
       maxSpreadPercent: 0.25,

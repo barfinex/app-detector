@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
 import { SubscriptionType } from '@barfinex/types';
 import { AlertService } from './alert.service';
 
@@ -31,23 +30,19 @@ export class DetectorTelegramNotifierService {
 
   constructor(private readonly alerts: AlertService) {}
 
-  @EventPattern(SubscriptionType.DETECTOR_SIGNAL_GENERATED)
-  async onSignalGenerated(@Payload() message: SubscriptionValue): Promise<void> {
+  async onSignalGenerated(message: SubscriptionValue): Promise<void> {
     await this.forward('signal', message);
   }
 
-  @EventPattern(SubscriptionType.DETECTOR_POSITION_OPEN_REQUEST)
-  async onPositionOpen(@Payload() message: SubscriptionValue): Promise<void> {
+  async onPositionOpen(message: SubscriptionValue): Promise<void> {
     await this.forward('position_open', message);
   }
 
-  @EventPattern(SubscriptionType.DETECTOR_POSITION_CLOSE_REQUEST)
-  async onPositionClose(@Payload() message: SubscriptionValue): Promise<void> {
+  async onPositionClose(message: SubscriptionValue): Promise<void> {
     await this.forward('position_close', message);
   }
 
-  @EventPattern(SubscriptionType.DETECTOR_SIGNAL_INVALIDATED)
-  async onSignalInvalidated(@Payload() message: SubscriptionValue): Promise<void> {
+  async onSignalInvalidated(message: SubscriptionValue): Promise<void> {
     await this.forward('signal_invalidated', message);
   }
 

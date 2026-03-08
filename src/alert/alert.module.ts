@@ -10,7 +10,8 @@ import { TelegrafModule } from 'nestjs-telegraf';
     TelegrafModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        token: configService.get<string>('TELEGRAM_BOT_TOKEN') || '',
+        token:
+          configService.get<string>('TELEGRAM_BOT_TOKEN') || '',
       }),
     }),
   ],

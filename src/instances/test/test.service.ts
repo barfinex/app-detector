@@ -138,7 +138,7 @@ export class TestService extends DetectorService {
     // ===================== Event Hooks =====================
 
     async onTrade(trade: Trade) {
-        if (this.isLegacyReadOnly()) return;
+        // if (this.isLegacyReadOnly()) return;
         this.logger.debug(
             `[onTrade] ${trade.symbol.name} price=${trade.price} volume=${trade.volume}`,
         );
@@ -171,7 +171,7 @@ export class TestService extends DetectorService {
     }
 
     async onOrderBookUpdate(orderbook: OrderBook) {
-        if (this.isLegacyReadOnly()) return;
+        // if (this.isLegacyReadOnly()) return;
         this.logger.debug(`[onOrderBookUpdate] ${orderbook.symbol.name}`);
     }
 
@@ -194,14 +194,14 @@ export class TestService extends DetectorService {
         });
     }
 
-    private isLegacyReadOnly(): boolean {
-        const readonly = Boolean((this.options.customConfig as any)?.legacyReadOnly);
-        if (readonly && !this.legacyWarned) {
-            this.logger.warn(
-                '[legacy] TestService is running in read-only mode; signals/execution disabled',
-            );
-            this.legacyWarned = true;
-        }
-        return readonly;
-    }
+    // private isLegacyReadOnly(): boolean {
+    //     const readonly = Boolean((this.options.customConfig as any)?.legacyReadOnly);
+    //     if (readonly && !this.legacyWarned) {
+    //         this.logger.warn(
+    //             '[legacy] TestService is running in read-only mode; signals/execution disabled',
+    //         );
+    //         this.legacyWarned = true;
+    //     }
+    //     return readonly;
+    // }
 }

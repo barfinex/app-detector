@@ -37,19 +37,39 @@ export class AppRegistrationService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async register(): Promise<void> {
-    await this.send('/apps/registry/register', this.buildPayload());
+    const payload = this.buildPayload();
+    this.logger.log(
+      `[app-registry] register ${JSON.stringify({
+        appKey: payload.appKey,
+        baseUrl: payload.baseUrl,
+      })}`,
+    );
+    await this.send('/apps/registry/register', payload);
   }
 
   private async heartbeat(): Promise<void> {
-    await this.send('/apps/registry/heartbeat', this.buildPayload());
+    const payload = this.buildPayload();
+    this.logger.debug(
+      `[app-registry] heartbeat ${JSON.stringify({
+        appKey: payload.appKey,
+      })}`,
+    );
+    await this.send('/apps/registry/heartbeat', payload);
   }
 
   private async unregister(): Promise<void> {
-    await this.send('/apps/registry/unregister', {
+    const payload = {
       appKey: this.getAppKey(),
       appType: 'detector',
       reason: 'shutdown',
-    });
+    };
+    this.logger.log(
+      `[app-registry] unregister ${JSON.stringify({
+        appKey: payload.appKey,
+        reason: payload.reason,
+      })}`,
+    );
+    await this.send('/apps/registry/unregister', payload);
   }
 
   private buildPayload(): Record<string, unknown> {
@@ -75,8 +95,15 @@ export class AppRegistrationService implements OnModuleInit, OnModuleDestroy {
   }
 
   private getProviderBaseUrl(): string {
-    const raw = process.env.PROVIDER_API_URL || 'https://localhost:8081/api';
-    return raw.replace(/\/+$/, '');
+    const cfg = this.configService.getConfig() as unknown as {
+      provider?: { restApiUrl?: string };
+    };
+    const fromCfg = cfg?.provider?.restApiUrl;
+    const raw =
+      process.env.PROVIDER_API_URL ||
+      (typeof fromCfg === 'string' && fromCfg.trim() ? fromCfg.trim() : 'http://localhost:8081/api');
+    const normalized = raw.replace(/\/+$/, '');
+    return normalized;
   }
 
   private getAppKey(): string {
@@ -104,6 +131,14 @@ export class AppRegistrationService implements OnModuleInit, OnModuleDestroy {
     if (token) headers.authorization = `Bearer ${token}`;
 
     try {
+      this.logger.debug(
+        `[app-registry] request ${JSON.stringify({
+          path,
+          url,
+          appKey: body.appKey,
+          appType: body.appType,
+        })}`,
+      );
       const response = await fetch(url, {
         method: 'POST',
         headers,
@@ -111,6 +146,14 @@ export class AppRegistrationService implements OnModuleInit, OnModuleDestroy {
       });
       if (!response.ok) {
         this.logger.warn(`[app-registry] request failed ${response.status}: ${url}`);
+      } else {
+        this.logger.debug(
+          `[app-registry] response ${JSON.stringify({
+            status: response.status,
+            path,
+            appKey: body.appKey,
+          })}`,
+        );
       }
     } catch (error) {
       this.logger.warn(

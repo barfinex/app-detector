@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DetectorService } from '@barfinex/detector';
-import { SMA } from '@barfinex/indicators';
 //import { sessionPlugin } from '@barfinex/plugins/session';
 // import { VirtualTakesOptions, virtualTakesPlugin } from '@barfinex/plugins/virtual-takes';
 // import { ReportPluginAPI, IndicatorsSchema } from '@barfinex/plugins/report';
@@ -41,8 +40,8 @@ import { HttpService } from '@nestjs/axios';
 export class TemplateService extends DetectorService {
     // declare additions: Detector;
     // declare plugins: StatsPluginAPI & ReportPluginAPI;
-    private sma: SMA;
-    private slowSMA: SMA;
+    private sma: unknown;
+    private slowSMA: unknown;
     private fastSmaResult: number[] = [];
     private slowSmaResult: number[] = [];
     private allowOrders = true;

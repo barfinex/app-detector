@@ -33,7 +33,7 @@ export class RiskController {
     const providerRestApiUrl =
       process.env.DETECTOR_PROVIDER_API_URL ||
       process.env.PROVIDER_API_URL ||
-      `http://localhost:${process.env.PROVIDER_API_PORT || 8080}/api`;
+      `http://localhost:${process.env.PROVIDER_API_PORT || 8081}/api`;
 
     const account = await this.connectorService.getAccount({
       providerRestApiUrl,
